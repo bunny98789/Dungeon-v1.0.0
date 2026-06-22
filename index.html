@@ -1,0 +1,314 @@
+<!DOCTYPE Html>
+<html>
+    <head>
+    <meta charset="UTF-8" />
+    <title>Dungeon v1.0.0</title>
+        <style>
+        /* CSS HERE */
+            #startGame {
+                background-color: cyan;
+                border: 3px solid black;
+                width: 300px;
+                height: 200px;
+                display: block;
+            }
+
+            #game {
+                background-color: black;
+                display: none;
+            }
+
+            .title, .lvlDisplay, .died {
+                z-index: 1000;
+                position: fixed;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .title {
+                top: 20%;
+            }
+            
+            .lvlDisplay {
+                top: 40%
+            }
+
+            .died {
+                top: 60%
+            }
+
+            #deathScreen {
+                z-index: 1000;
+            }
+        </style>
+</head>
+    <body>
+        <!-- HTML HERE -->
+        <button id="startGame" onclick="startGame(1)">Play</button>
+        <button id="2p" onclick="startGame(2)">2 Player</button>
+        <audio id="hurt" src="https://files.catbox.moe/kr4dnu.mp3"></audio>
+        <div id="deathScreen"></div>
+        <canvas id="game" height="725" width="1350"></canvas>
+        <script>
+            //JS HERE
+            const canvas = document.getElementById("game");
+            const ctx = canvas.getContext('2d');
+            const deathScreen = document.getElementById("deathScreen");
+
+            // game varibles
+            let gameState = "menu";
+            let winX = 150;
+            let winY = 150;
+            let level = 1;
+            let players = 0;
+            let keys = [
+                {key: "w", active: false},
+                {key: "s", active: false},
+                {key: "a", active: false},
+                {key: "d", active: false},
+                {key: "leftArrow", active: false},
+                {key: "rightArrow", active: false},
+                {key: "upArrow", active: false},
+                {key: "downArrow", active: false},
+            ];
+
+            //player varibles
+            let playerX = 50;
+            let playerY = 50;
+            let playerHealth = 5;
+            let playerImmune = false;
+            
+            //player 2 varibles
+            let player2X = 50;
+            let player2Y = 50;
+            let player2Health = 5;
+            let player2Immune = false;
+
+            //enemy varibles
+            let enemyX = 500;
+            let enemyY = 500;
+            let enemySpeed = 1;
+            
+            function startGame(playerAmount = 1) {
+                players = playerAmount
+                document.getElementById("startGame").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                gameState = "game";
+                requestAnimationFrame(gameLoop);
+            }
+
+            function canMovePlayer(dir) {
+                if (playerX + 60 > canvas.width && dir === "right") return false;
+                if (playerX - 10 < 0 && dir === "left") return false;
+                if (playerY + 60 > canvas.height && dir === "down") return false;
+                if (playerY - 10 < 0 && dir === "up") return false;
+
+                return true;
+            }
+
+             function canMovePlayer2(dir) {
+                if (player2X + 60 > canvas.width && dir === "right") return false;
+                if (player2X - 10 < 0 && dir === "left") return false;
+                if (player2Y + 60 > canvas.height && dir === "down") return false;
+                if (player2Y - 10 < 0 && dir === "up") return false;
+
+                return true;
+            }
+
+            
+            function drawPlayer() {
+                if (players === 1) {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(playerX, playerY, 50, 50);
+                    } else {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(playerX, playerY, 50, 50);
+                ctx.fillStyle = 'purple';
+                ctx.fillRect(player2X, player2Y, 50, 50);  
+                    }
+            }
+
+            function drawEnemy() {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(enemyX, enemyY, 50, 50);
+            }
+
+            function drawWinSquare() {
+                ctx.fillStyle = 'lime';
+                ctx.fillRect(winX, winY, 50, 50);
+            }
+
+            function nextLevel() {
+                 winX = Math.floor(Math.random() * 1300) + 1;
+                 winY = Math.floor(Math.random() * 650) + 1;
+                 enemySpeed++;
+                 enemyX = 0;
+                 enemyY = 0;
+                 playerImmune = true;
+                 player2Immune = true;
+                 level++;
+
+                setTimeout(() => {
+                    playerImmune = false;
+                    player2Immune = false;
+                });
+            }
+
+            function handlePlayerDeath(player) {
+                if (players === 1) {
+                 gameState = "end";
+
+                 const title = document.createElement("h2");
+                 title.innerText = "Dungeon V1.0.0";
+                 title.style.color = "White";
+                 title.className = "title";
+                 deathScreen.appendChild(title);
+
+                 const lvlDisplay = document.createElement("p");
+                 lvlDisplay.innerText = "Levels Beaten: " + (level - 1);
+                 lvlDisplay.style.color = "White";
+                 lvlDisplay.className = "lvlDisplay";
+                 deathScreen.appendChild(lvlDisplay);
+
+                 const died = document.createElement("h3");
+                 died.innerText = "You Died!";
+                 died.style.color = "Red";
+                 died.className = "died";
+                 deathScreen.appendChild(died);
+
+                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    } else {
+                 if (player === 1) {
+                    ctx.clearRect(playerX, playerY, 50, 50);
+                    players--;
+                 }
+                    
+                 if (player === 2) {
+                    ctx.clearRect(player2X, player2Y, 50, 50);
+                    players--;
+                 }
+            }
+        }
+
+            function gameLoop() {
+                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                 if (gameState !== "game") return;
+
+                
+                const xDiff = playerX - enemyX;
+                const yDiff = playerY - enemyY;
+                const xDiff2 = player2X - enemyX;
+                const yDiff2 = player2Y - enemyY;
+                const d1 = (xDiff * xDiff) + (yDiff * yDiff);
+                const d2 = (xDiff2 * xDiff2) + (yDiff2 * yDiff2);
+
+                if (d1 < d2 && players === 2) {
+                 if (playerX !== enemyX && playerX > enemyX) enemyX += enemySpeed;
+                 if (playerX !== enemyX && playerX < enemyX) enemyX -= enemySpeed;
+                 if (playerY !== enemyY && playerY > enemyY) enemyY += enemySpeed;
+                 if (playerY !== enemyY && playerY < enemyY) enemyY -= enemySpeed;
+                } else if (d1 > d2 && players === 2) {
+                 if (player2X !== enemyX && player2X > enemyX) enemyX += enemySpeed;
+                 if (player2X !== enemyX && player2X < enemyX) enemyX -= enemySpeed;
+                 if (player2Y !== enemyY && player2Y > enemyY) enemyY += enemySpeed;
+                 if (player2Y !== enemyY && player2Y < enemyY) enemyY -= enemySpeed;   
+                }
+
+                if (players === 1) {
+                 if (playerX !== enemyX && playerX > enemyX) enemyX += enemySpeed;
+                 if (playerX !== enemyX && playerX < enemyX) enemyX -= enemySpeed;
+                 if (playerY !== enemyY && playerY > enemyY) enemyY += enemySpeed;
+                 if (playerY !== enemyY && playerY < enemyY) enemyY -= enemySpeed;
+                }
+
+                if (keys[0].active) playerY -= 5;
+                if (keys[1].active) playerY += 5;
+                if (keys[2].active) playerX -= 5;
+                if (keys[3].active) playerX += 5;
+
+                if (keys[4].active) player2Y -= 5;
+                if (keys[5].active) player2Y += 5;
+                if (keys[6].active) player2X -= 5;
+                if (keys[7].active) player2X += 5;
+
+                 if (
+                     playerX < enemyX + 50 &&
+                     playerX + 50 > enemyX &&
+                     playerY < enemyY + 50 &&
+                     playerY + 50 > enemyY &&
+                     !playerImmune
+                 ) {
+                     playerHealth -= 1;
+                     if (playerHealth <= 0) handlePlayerDeath(1);
+                     document.getElementById("hurt").play();
+                     playerImmune = true;
+                     setTimeout(() => {
+                         playerImmune = false;
+                     }, 2000);
+                    } 
+
+                 if (
+                     player2X < enemyX + 50 &&
+                     player2X + 50 > enemyX &&
+                     player2Y < enemyY + 50 &&
+                     player2Y + 50 > enemyY &&
+                     !player2Immune && players === 2
+                 ) {
+                     player2Health -= 1;
+                     if (player2Health <= 0) handlePlayerDeath(2);
+                     document.getElementById("hurt").play();
+                     player2Immune = true;
+                     setTimeout(() => {
+                         player2Immune = false;
+                     }, 2000);
+                    } 
+
+                if (
+                     playerX < winX + 50 &&
+                     playerX + 50 > winX &&
+                     playerY < winY + 50 &&
+                     playerY + 50 > winY
+                 ) {
+                    nextLevel();
+                    } 
+
+                if (
+                     player2X < winX + 50 &&
+                     player2X + 50 > winX &&
+                     player2Y < winY + 50 &&
+                     player2Y + 50 > winY
+                 ) {
+                    nextLevel();
+                    } 
+                
+                 drawWinSquare();
+                 drawPlayer();
+                 drawEnemy();
+                 if (gameState === "game") {
+                 requestAnimationFrame(gameLoop);
+                     }
+            }
+
+            document.addEventListener("keypress", (e) => {
+                if (e.key.toLowerCase() === "w" && canMovePlayer("up")) keys[0].active = true;
+                if (e.key.toLowerCase() === "s" && canMovePlayer("down")) keys[1].active = true;
+                if (e.key.toLowerCase() === "a" && canMovePlayer("left")) keys[2].active = true;
+                if (e.key.toLowerCase() === "d" && canMovePlayer("right")) keys[3].active = true;
+                if (e.key === "ArrowUp" && canMovePlayer2("up")) { e.preventDefault(); keys[4].active = true; }
+                if (e.key === "ArrowDown" && canMovePlayer2("down")) { e.preventDefault(); keys[5].active = true; }
+                if (e.key === "ArrowLeft" && canMovePlayer2("left"))  { e.preventDefault(); keys[6].active = true; }
+                if (e.key === "ArrowRight" && canMovePlayer2("right"))  { e.preventDefault(); keys[7].active = true; }
+            });
+
+            document.addEventListener("keyup", (e) => {
+                if (e.key.toLowerCase() === "w") keys[0].active = false;
+                if (e.key.toLowerCase() === "s") keys[1].active = false;
+                if (e.key.toLowerCase() === "a") keys[2].active = false;
+                if (e.key.toLowerCase() === "d") keys[3].active = false;
+                if (e.key === "ArrowUp") keys[4].active = false;
+                if (e.key === "ArrowDown") keys[5].active = false;
+                if (e.key === "ArrowLeft") keys[6].active = false;
+                if (e.key === "ArrowRight") keys[7].active = false;
+            });
+        </script>
+    </body>
+</html>
